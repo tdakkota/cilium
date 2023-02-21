@@ -315,6 +315,15 @@ struct edt_info {
 	__u64		pad[4];
 };
 
+struct ept_id {
+	__u64		id;
+};
+
+struct ept_info {
+	__u32		priority;
+    __u32		pad;
+};
+
 struct remote_endpoint_info {
 	__u32		sec_label;
 	__u32		tunnel_endpoint;

@@ -64,6 +64,17 @@ struct {
 } THROTTLE_MAP __section_maps_btf;
 #endif /* ENABLE_BANDWIDTH_MANAGER */
 
+#ifdef ENABLE_PRIORITY_MANAGER
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, struct ept_id);
+	__type(value, struct ept_info);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
+	__uint(max_entries, PRIORITY_MAP_SIZE);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+} THROTTLE_MAP __section_maps_btf;
+#endif /* ENABLE_PRIORITY_MANAGER */
+
 /* Map to link endpoint id to per endpoint cilium_policy map */
 #ifdef SOCKMAP
 struct {

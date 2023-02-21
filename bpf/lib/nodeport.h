@@ -10,6 +10,7 @@
 #include "tailcall.h"
 #include "nat.h"
 #include "edt.h"
+#include "ept.h"
 #include "lb.h"
 #include "common.h"
 #include "overloadable.h"
@@ -941,6 +942,7 @@ redo:
 
 	/* TX request to remote backend: */
 	edt_set_aggregate(ctx, 0);
+	ept_set_aggregate(ctx, 0);
 	if (nodeport_uses_dsr6(&tuple)) {
 #if DSR_ENCAP_MODE == DSR_ENCAP_IPIP
 		ctx_store_meta(ctx, CB_HINT,
@@ -1157,6 +1159,7 @@ int tail_rev_nodeport_lb6(struct __ctx_buff *ctx)
 	if (IS_ERR(ret))
 		goto drop;
 	edt_set_aggregate(ctx, 0);
+	ept_set_aggregate(ctx, 0);
 	cilium_capture_out(ctx);
 	if (fib_ok(ret))
 		return ret;
@@ -2089,6 +2092,7 @@ redo:
 
 	/* TX request to remote backend: */
 	edt_set_aggregate(ctx, 0);
+	ept_set_aggregate(ctx, 0);
 	if (nodeport_uses_dsr4(&tuple)) {
 #if DSR_ENCAP_MODE == DSR_ENCAP_IPIP
 		ctx_store_meta(ctx, CB_HINT,
@@ -2287,6 +2291,7 @@ int tail_rev_nodeport_lb4(struct __ctx_buff *ctx)
 		return send_drop_notify_error_ext(ctx, 0, ret, ext_err,
 						  CTX_ACT_DROP, METRIC_EGRESS);
 	edt_set_aggregate(ctx, 0);
+	ept_set_aggregate(ctx, 0);
 	cilium_capture_out(ctx);
 	if (fib_ok(ret))
 		return ret;

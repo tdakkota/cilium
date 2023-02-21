@@ -36,6 +36,7 @@
 
 #include "lib/common.h"
 #include "lib/edt.h"
+#include "lib/ept.h"
 #include "lib/arp.h"
 #include "lib/maps.h"
 #include "lib/ipv6.h"
@@ -1127,6 +1128,10 @@ out:
 		return send_drop_notify_error_ext(ctx, 0, ret, ext_err,
 						  CTX_ACT_DROP, METRIC_EGRESS);
 #endif /* ENABLE_HOST_FIREWALL */
+
+#if defined(ENABLE_PRIORITY_MANAGER)
+    ept_set_priority(ctx);
+#endif
 
 #if defined(ENABLE_BANDWIDTH_MANAGER)
 	ret = edt_sched_departure(ctx);

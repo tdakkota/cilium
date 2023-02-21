@@ -25,6 +25,7 @@
 #include "lib/maps.h"
 #include "lib/arp.h"
 #include "lib/edt.h"
+#include "lib/ept.h"
 #include "lib/qm.h"
 #include "lib/ipv6.h"
 #include "lib/ipv4.h"
@@ -1298,6 +1299,7 @@ int cil_from_container(struct __ctx_buff *ctx)
 #ifdef ENABLE_IPV6
 	case bpf_htons(ETH_P_IPV6):
 		edt_set_aggregate(ctx, LXC_ID);
+		ept_set_aggregate(ctx, 0);
 		ep_tail_call(ctx, CILIUM_CALL_IPV6_FROM_LXC);
 		ret = DROP_MISSED_TAIL_CALL;
 		break;
@@ -1305,6 +1307,7 @@ int cil_from_container(struct __ctx_buff *ctx)
 #ifdef ENABLE_IPV4
 	case bpf_htons(ETH_P_IP):
 		edt_set_aggregate(ctx, LXC_ID);
+		ept_set_aggregate(ctx, 0);
 		ep_tail_call(ctx, CILIUM_CALL_IPV4_FROM_LXC);
 		ret = DROP_MISSED_TAIL_CALL;
 		break;
