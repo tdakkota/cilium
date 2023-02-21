@@ -878,6 +878,23 @@ func (e *Endpoint) UpdateBandwidthPolicy(annoCB AnnotationsResolverCB) {
 	}
 }
 
+func (e *Endpoint) UpdatePriorityPolicy(annoCB AnnotationsResolverCB) {
+	ch, err := e.eventQueue.Enqueue(eventqueue.NewEvent(&EndpointPolicyPriorityEvent{
+		ep:     e,
+		annoCB: annoCB,
+	}))
+	if err != nil {
+		e.getLogger().WithError(err).Error("Unable to enqueue endpoint policy priority event")
+		return
+	}
+
+	updateRes := <-ch
+	regenResult, ok := updateRes.(*EndpointRegenerationResult)
+	if ok && regenResult.err != nil {
+		e.getLogger().WithError(regenResult.err).Error("EndpointPolicyPriorityEvent event failed")
+	}
+}
+
 // GetRealizedPolicyRuleLabelsForKey returns the list of policy rule labels
 // which match a given flow key (in host byte-order). The returned
 // LabelArrayList is shallow-copied and therefore must not be mutated.

@@ -52,6 +52,7 @@ import (
 	"github.com/cilium/cilium/pkg/monitor/notifications"
 	"github.com/cilium/cilium/pkg/node"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/packetpriority"
 	"github.com/cilium/cilium/pkg/policy"
 	"github.com/cilium/cilium/pkg/policy/trafficdirection"
 	"github.com/cilium/cilium/pkg/proxy/accesslog"
@@ -1622,6 +1623,13 @@ func (e *Endpoint) RunMetadataResolver(resolveMetadata MetadataResolverCB) {
 						return "", err
 					}
 					return annotations[bandwidth.EgressBandwidth], nil
+				})
+				e.UpdatePriorityPolicy(func(ns, podName string) (priorityEgress string, err error) {
+					_, _, _, _, annotations, err := resolveMetadata(ns, podName)
+					if err != nil {
+						return "", err
+					}
+					return annotations[packetpriority.EgressPriority], nil
 				})
 				e.UpdateLabels(ctx, identityLabels, info, true)
 				close(done)

@@ -36,6 +36,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/packetpriority"
 	"github.com/cilium/cilium/pkg/proxy"
 )
 
@@ -465,6 +466,13 @@ func (d *Daemon) createEndpoint(ctx context.Context, owner regeneration.Owner, e
 				return "", err
 			}
 			return p.Annotations[bandwidth.EgressBandwidth], nil
+		})
+		ep.UpdatePriorityPolicy(func(ns, podName string) (priorityEgress string, err error) {
+			p, err := d.k8sWatcher.GetCachedPod(ns, podName)
+			if err != nil {
+				return "", err
+			}
+			return p.Annotations[packetpriority.EgressPriority], nil
 		})
 		ep.UpdateNoTrackRules(func(ns, podName string) (noTrackPort string, err error) {
 			p, err := d.k8sWatcher.GetCachedPod(ns, podName)

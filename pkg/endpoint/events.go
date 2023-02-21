@@ -13,7 +13,9 @@ import (
 	"github.com/cilium/cilium/pkg/eventqueue"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/maps/bwmap"
+	"github.com/cilium/cilium/pkg/maps/qosmap"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/packetpriority"
 	"github.com/cilium/cilium/pkg/policy"
 )
 
@@ -308,6 +310,58 @@ func (ev *EndpointPolicyBandwidthEvent) Handle(res chan interface{}) {
 	e.getLogger().Debugf("Updating %s from %s to %s bytes/sec", bandwidth.EgressBandwidth,
 		bpsOld, bpsNew)
 	e.bps = bps
+	res <- &EndpointRegenerationResult{
+		err: nil,
+	}
+}
+
+// EndpointPolicyPriorityEvent contains all fields necessary to update
+// the Pod's priority policy.
+type EndpointPolicyPriorityEvent struct {
+	ep     *Endpoint
+	annoCB AnnotationsResolverCB
+}
+
+// Handle handles the policy priority update.
+func (ev *EndpointPolicyPriorityEvent) Handle(res chan interface{}) {
+	var val uint32
+
+	e := ev.ep
+	if err := e.lockAlive(); err != nil {
+		// If the endpoint is being deleted, we don't need to
+		// update its priority policy.
+		res <- &EndpointRegenerationResult{
+			err: nil,
+		}
+		return
+	}
+	defer func() {
+		e.unlock()
+	}()
+
+	priorityEgress, err := ev.annoCB(e.K8sNamespace, e.K8sPodName)
+	if err != nil || !option.Config.EnablePriorityManager {
+		res <- &EndpointRegenerationResult{
+			err: err,
+		}
+		return
+	}
+	if priorityEgress != "" {
+		val, err = packetpriority.GetPriorityValue(priorityEgress)
+		if err == nil {
+			err = qosmap.Update(e.ID, val)
+		}
+	} else {
+		err = qosmap.SilentDelete(e.ID)
+	}
+	if err != nil {
+		res <- &EndpointRegenerationResult{
+			err: err,
+		}
+		return
+	}
+
+	e.getLogger().Debugf("Updating %s to %q (%d)", packetpriority.EgressPriority, priorityEgress, val)
 	res <- &EndpointRegenerationResult{
 		err: nil,
 	}

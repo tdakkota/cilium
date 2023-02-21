@@ -53,6 +53,7 @@ import (
 	"github.com/cilium/cilium/pkg/node"
 	nodeTypes "github.com/cilium/cilium/pkg/node/types"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/packetpriority"
 	"github.com/cilium/cilium/pkg/service"
 	"github.com/cilium/cilium/pkg/source"
 	ciliumTypes "github.com/cilium/cilium/pkg/types"
@@ -294,6 +295,7 @@ func (k *K8sWatcher) updateK8sPodV1(oldK8sPod, newK8sPod *slim_corev1.Pod) error
 	newAnno := newK8sPod.ObjectMeta.Annotations
 	annoChangedProxy := !k8s.AnnotationsEqual([]string{annotation.ProxyVisibility, annotation.ProxyVisibilityAlias}, oldAnno, newAnno)
 	annoChangedBandwidth := !k8s.AnnotationsEqual([]string{bandwidth.EgressBandwidth}, oldAnno, newAnno)
+	annoChangedPriority := !k8s.AnnotationsEqual([]string{packetpriority.EgressPriority}, oldAnno, newAnno)
 	annoChangedNoTrack := !k8s.AnnotationsEqual([]string{annotation.NoTrack, annotation.NoTrackAlias}, oldAnno, newAnno)
 	annotationsChanged := annoChangedProxy || annoChangedBandwidth || annoChangedNoTrack
 
@@ -369,6 +371,15 @@ func (k *K8sWatcher) updateK8sPodV1(oldK8sPod, newK8sPod *slim_corev1.Pod) error
 					return "", nil
 				}
 				return p.ObjectMeta.Annotations[bandwidth.EgressBandwidth], nil
+			})
+		}
+		if annoChangedPriority {
+			podEP.UpdatePriorityPolicy(func(ns, podName string) (priorityEgress string, err error) {
+				p, err := k.GetCachedPod(ns, podName)
+				if err != nil {
+					return "", nil
+				}
+				return p.ObjectMeta.Annotations[packetpriority.EgressPriority], nil
 			})
 		}
 		if annoChangedNoTrack {

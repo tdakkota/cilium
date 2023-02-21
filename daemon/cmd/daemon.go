@@ -81,6 +81,7 @@ import (
 	nodeTypes "github.com/cilium/cilium/pkg/node/types"
 	"github.com/cilium/cilium/pkg/nodediscovery"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/packetpriority"
 	"github.com/cilium/cilium/pkg/policy"
 	policyAPI "github.com/cilium/cilium/pkg/policy/api"
 	"github.com/cilium/cilium/pkg/probe"
@@ -276,6 +277,7 @@ func (d *Daemon) init() error {
 
 	if !option.Config.DryMode {
 		bandwidth.InitBandwidthManager()
+		packetpriority.InitPriorityManager()
 
 		if err := d.createNodeConfigHeaderfile(); err != nil {
 			return fmt.Errorf("failed while creating node config header file: %w", err)

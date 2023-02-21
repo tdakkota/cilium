@@ -314,6 +314,9 @@ const (
 	// EnableBandwidthManager enables EDT-based pacing
 	EnableBandwidthManager = "enable-bandwidth-manager"
 
+	// EnablePriorityManager enables policy-driven packet priority management
+	EnablePriorityManager = "enable-priority-manager"
+
 	// EnableBBR enables BBR TCP congestion control for the node including Pods
 	EnableBBR = "enable-bbr"
 
@@ -1962,6 +1965,9 @@ type DaemonConfig struct {
 	// EnableBandwidthManager enables EDT-based pacing
 	EnableBandwidthManager bool
 
+	// EnablePriorityManager enables policy-driven packet priority management
+	EnablePriorityManager bool
+
 	// EnableBBR enables BBR TCP congestion control for the node including Pods
 	EnableBBR bool
 
@@ -2920,6 +2926,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.EnableSessionAffinity = vp.GetBool(EnableSessionAffinity)
 	c.EnableServiceTopology = vp.GetBool(EnableServiceTopology)
 	c.EnableBandwidthManager = vp.GetBool(EnableBandwidthManager)
+	c.EnablePriorityManager = vp.GetBool(EnablePriorityManager)
 	c.EnableBBR = vp.GetBool(EnableBBR)
 	c.EnableRecorder = vp.GetBool(EnableRecorder)
 	c.EnableMKE = vp.GetBool(EnableMKE)
