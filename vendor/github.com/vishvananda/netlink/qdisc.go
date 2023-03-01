@@ -3,6 +3,8 @@ package netlink
 import (
 	"fmt"
 	"math"
+
+	"github.com/vishvananda/netlink/nl"
 )
 
 const (
@@ -32,10 +34,11 @@ type Qdisc interface {
 // has a handle, a parent and a refcnt. The root qdisc of a device should
 // have parent == HANDLE_ROOT.
 type QdiscAttrs struct {
-	LinkIndex int
-	Handle    uint32
-	Parent    uint32
-	Refcnt    uint32 // read only
+	LinkIndex    int
+	Handle       uint32
+	Parent       uint32
+	Refcnt       uint32 // read only
+	IngressBlock *uint32
 }
 
 func (q QdiscAttrs) String() string {
@@ -372,4 +375,28 @@ func (qdisc *Sfq) Attrs() *QdiscAttrs {
 
 func (qdisc *Sfq) Type() string {
 	return "sfq"
+}
+
+type MqPrio struct {
+	QdiscAttrs
+	Opt       nl.TcMqPrioQopt
+	Mode      uint16
+	Shaper    uint16
+	MinRate64 uint64
+	MaxRate64 uint64
+}
+
+func (qdisc *MqPrio) Attrs() *QdiscAttrs {
+	return &qdisc.QdiscAttrs
+}
+
+func (qdisc *MqPrio) Type() string {
+	return "mqprio"
+}
+
+func (qdisc *MqPrio) String() string {
+	return fmt.Sprintf(
+		"{%v -- Opt %+v, Mode: %v Shaper %v MinRate64 %v MaxRate64 %v}",
+		qdisc.Attrs(), qdisc.Opt, qdisc.Mode, qdisc.Shaper, qdisc.MinRate64, qdisc.MaxRate64,
+	)
 }

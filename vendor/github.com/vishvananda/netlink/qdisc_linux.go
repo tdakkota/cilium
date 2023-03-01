@@ -159,6 +159,9 @@ func (h *Handle) qdiscModify(cmd, flags int, qdisc Qdisc) error {
 func qdiscPayload(req *nl.NetlinkRequest, qdisc Qdisc) error {
 
 	req.AddData(nl.NewRtAttr(nl.TCA_KIND, nl.ZeroTerminated(qdisc.Type())))
+	if qdisc.Attrs().IngressBlock != nil {
+		req.AddData(nl.NewRtAttr(nl.TCA_INGRESS_BLOCK, nl.Uint32Attr(*qdisc.Attrs().IngressBlock)))
+	}
 
 	options := nl.NewRtAttr(nl.TCA_OPTIONS, nil)
 
@@ -300,6 +303,20 @@ func qdiscPayload(req *nl.NetlinkRequest, qdisc Qdisc) error {
 		opt.TcSfqQopt.Divisor = qdisc.Divisor
 
 		options = nl.NewRtAttr(nl.TCA_OPTIONS, opt.Serialize())
+	case *MqPrio:
+		options = nl.NewRtAttr(nl.TCA_OPTIONS, qdisc.Opt.Serialize())
+		if qdisc.Mode != 0 {
+			options.AddRtAttr(nl.TCA_MQPRIO_MODE, nl.Uint16Attr(qdisc.Mode))
+		}
+		if qdisc.Shaper != 0 {
+			options.AddRtAttr(nl.TCA_MQPRIO_SHAPER, nl.Uint16Attr(qdisc.Shaper))
+		}
+		if qdisc.MaxRate64 != 0 {
+			options.AddRtAttr(nl.TCA_MQPRIO_MAX_RATE64, nl.Uint64Attr(qdisc.MaxRate64))
+		}
+		if qdisc.MinRate64 != 0 {
+			options.AddRtAttr(nl.TCA_MQPRIO_MIN_RATE64, nl.Uint64Attr(qdisc.MinRate64))
+		}
 	default:
 		options = nil
 	}
@@ -386,6 +403,8 @@ func (h *Handle) QdiscList(link Link) ([]Qdisc, error) {
 					qdisc = &Netem{}
 				case "sfq":
 					qdisc = &Sfq{}
+				case "mqprio":
+					qdisc = &MqPrio{}
 				default:
 					qdisc = &GenericQdisc{QdiscType: qdiscType}
 				}
@@ -445,9 +464,17 @@ func (h *Handle) QdiscList(link Link) ([]Qdisc, error) {
 					if err := parseSfqData(qdisc, attr.Value); err != nil {
 						return nil, err
 					}
+				case "mqprio":
+					if err := parseMqprioData(qdisc, attr.Value); err != nil {
+						return nil, err
+					}
 
 					// no options for ingress
 				}
+			case nl.TCA_INGRESS_BLOCK:
+				ingressBlock := new(uint32)
+				*ingressBlock = native.Uint32(attr.Value)
+				base.IngressBlock = ingressBlock
 			}
 		}
 		*qdisc.Attrs() = base
@@ -624,6 +651,29 @@ func parseSfqData(qdisc Qdisc, value []byte) error {
 	sfq.Limit = opt.TcSfqQopt.Limit
 	sfq.Divisor = opt.TcSfqQopt.Divisor
 
+	return nil
+}
+
+func parseMqprioData(qdisc Qdisc, value []byte) error {
+	mqprio := qdisc.(*MqPrio)
+	opt := nl.DeserializeTcMqPrioQopt(value)
+	data, err := nl.ParseRouteAttr(value[nl.SizeofTcMqPrioQopt:])
+	if err != nil {
+		return err
+	}
+	for _, datum := range data {
+		switch datum.Attr.Type {
+		case nl.TCA_MQPRIO_MODE:
+			mqprio.Mode = native.Uint16(datum.Value)
+		case nl.TCA_MQPRIO_SHAPER:
+			mqprio.Shaper = native.Uint16(datum.Value)
+		case nl.TCA_MQPRIO_MAX_RATE64:
+			mqprio.MaxRate64 = native.Uint64(datum.Value)
+		case nl.TCA_MQPRIO_MIN_RATE64:
+			mqprio.MinRate64 = native.Uint64(datum.Value)
+		}
+	}
+	mqprio.Opt = *opt
 	return nil
 }
 
